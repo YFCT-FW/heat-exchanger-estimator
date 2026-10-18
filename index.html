@@ -1,0 +1,1123 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>换热面积 · 容积 · 成本 · 理论充注量 估算系统</title>
+<style>
+  :root{
+    --bg:#eef2f7; --card:#ffffff; --line:#d6dee8; --ink:#1f2d3d; --sub:#64748b;
+    --brand:#0f6fbf; --brand2:#0aa2c0; --input:#fff7cc; --auto:#eef1f4; --ok:#1a9e5f; --warn:#d9822b; --err:#d94848;
+    --head:#0f6fbf; --head2:#0a5d9e; --side:220px; --sideMini:64px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;font-family:"Microsoft YaHei","PingFang SC",-apple-system,Segoe UI,Roboto,sans-serif;
+       background:var(--bg);color:var(--ink);font-size:13px;padding-left:var(--side);transition:padding-left .22s ease}
+  body.collapsed{padding-left:var(--sideMini)}
+
+  /* ================= 左侧导航 ================= */
+  .sidebar{position:fixed;top:0;left:0;height:100vh;width:var(--side);z-index:60;
+    background:linear-gradient(180deg,#1268ad 0%,#0a4b85 100%);color:#fff;
+    display:flex;flex-direction:column;box-shadow:2px 0 14px rgba(10,60,110,.22);
+    transition:width .22s ease,transform .22s ease}
+  .sidebar.collapsed{width:var(--sideMini)}
+  .side-head{display:flex;align-items:center;gap:9px;padding:15px 14px;border-bottom:1px solid rgba(255,255,255,.16)}
+  .logo{width:30px;height:30px;flex:0 0 30px;border-radius:8px;background:rgba(255,255,255,.18);
+    display:flex;align-items:center;justify-content:center;font-size:17px}
+  .side-title{font-size:13.5px;font-weight:700;line-height:1.25;white-space:nowrap;overflow:hidden}
+  .side-title small{display:block;font-size:10.5px;font-weight:400;opacity:.75;letter-spacing:.3px}
+  .side-actions{margin-left:auto;display:flex;gap:4px}
+  .iconbtn{background:rgba(255,255,255,.16);border:none;color:#fff;border-radius:6px;cursor:pointer;
+    padding:4px 7px;font-size:12px;line-height:1}
+  .iconbtn:hover{background:rgba(255,255,255,.3)}
+  .nav{flex:1;overflow:auto;padding:10px 8px}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:10px 11px;border-radius:9px;color:#dcebfa;
+    text-decoration:none;font-size:13px;cursor:pointer;margin-bottom:4px;white-space:nowrap;transition:.15s}
+  .nav-item:hover{background:rgba(255,255,255,.13);color:#fff}
+  .nav-item.active{background:#fff;color:#0f6fbf;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+  .nav-item .ico{width:20px;text-align:center;font-size:15px;flex:0 0 20px}
+  .sidebar.collapsed .side-title,
+  .sidebar.collapsed .nav-item .txt,
+  .sidebar.collapsed .nav-group{display:none}
+  .sidebar.collapsed .nav-item{justify-content:center;padding:11px 0}
+  .sidebar.collapsed .side-head{justify-content:center}
+  .sidebar.collapsed .side-actions{margin-left:0;position:absolute;right:4px;top:6px}
+  .nav-group{font-size:10.5px;opacity:.6;padding:12px 12px 4px;letter-spacing:.5px}
+  .backdrop{position:fixed;inset:0;background:rgba(15,30,50,.45);z-index:55;opacity:0;pointer-events:none;transition:.2s}
+  .menu-btn{position:fixed;top:12px;left:12px;z-index:70;display:none;border:none;border-radius:9px;
+    background:var(--brand);color:#fff;font-size:17px;padding:7px 11px;cursor:pointer;box-shadow:0 3px 10px rgba(15,111,191,.4)}
+
+  @media (max-width:900px){
+    body{padding-left:0}
+    .sidebar{transform:translateX(-100%);width:250px}
+    .sidebar.open{transform:translateX(0)}
+    .sidebar.collapsed{width:250px}
+    .sidebar.collapsed .side-title,.sidebar.collapsed .nav-item .txt,.sidebar.collapsed .nav-group{display:block}
+    .sidebar.collapsed .nav-item{justify-content:flex-start;padding:10px 11px}
+    .menu-btn{display:block}
+    body.side-open .backdrop{opacity:1;pointer-events:auto}
+  }
+
+  /* ================= 主内容 ================= */
+  .wrap{max-width:1900px;margin:0 auto;padding:14px 16px 70px}
+  header.top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+       background:linear-gradient(100deg,var(--head) 0%,var(--brand2) 100%);color:#fff;
+       padding:14px 20px;border-radius:12px;box-shadow:0 4px 14px rgba(15,111,191,.28);margin-top:8px}
+  header.top h1{font-size:19px;margin:0;font-weight:700;letter-spacing:.5px}
+  header.top .sub{font-size:12px;opacity:.92;margin-top:3px}
+  section.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-top:14px;
+        box-shadow:0 2px 8px rgba(30,50,80,.05);scroll-margin-top:14px}
+  section.card h2{font-size:15px;margin:0 0 12px;display:flex;align-items:center;gap:8px}
+  section.card h2 .bar{width:4px;height:16px;background:var(--brand);border-radius:2px}
+  section.card h2 small{font-weight:400;color:var(--sub);font-size:12px}
+  .pricebar{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;align-items:end}
+  label.f{display:block;font-size:12px;color:var(--sub);margin-bottom:4px}
+  input,select{font-family:inherit;font-size:13px;color:var(--ink);border:1px solid var(--line);
+        border-radius:7px;padding:6px 8px;background:#fff;width:100%}
+  input:focus,select:focus{outline:2px solid #bfe0ff;border-color:var(--brand)}
+  .btn{border:none;border-radius:7px;padding:8px 14px;cursor:pointer;font-size:13px;font-weight:600;
+       background:var(--brand);color:#fff;transition:.15s}
+  .btn:hover{background:var(--head2)}
+  .btn.ghost{background:#eaf1f8;color:var(--brand)}
+  .btn.ghost:hover{background:#dbe8f6}
+  .btn.mini{padding:3px 8px;font-size:12px;font-weight:500}
+  .status{font-size:12px;padding:7px 10px;border-radius:7px;background:#f1f5f9;color:var(--sub);
+      border:1px solid var(--line);line-height:1.55}
+  .status.ok{background:#e9f7f0;color:var(--ok);border-color:#bfe6d3}
+  .status.warn{background:#fdf4e7;color:var(--warn);border-color:#f3ddbd}
+  .status.err{background:#fdecec;color:var(--err);border-color:#f4c9c9}
+  .tbl-wrap{overflow:auto;border:1px solid var(--line);border-radius:10px;background:#fff;max-height:70vh}
+  table{border-collapse:separate;border-spacing:0;font-size:12.5px;white-space:nowrap}
+  th,td{padding:6px 8px;border-bottom:1px solid #edf1f6;border-right:1px solid #f2f5f9;text-align:center}
+  thead th{background:#eaf1f8;color:#123;font-weight:600;z-index:3;border-bottom:2px solid #d3e0ee}
+  thead tr.grp th{position:sticky;top:0;background:var(--head);color:#fff;border-right:1px solid rgba(255,255,255,.25);z-index:4}
+  thead tr.cols th{position:sticky;top:29px;z-index:3}
+  td.opt{background:var(--input)}
+  td.calc{background:var(--auto);color:#334}
+  td.name{background:#fff;text-align:left;font-weight:600;min-width:120px}
+  td.diff{background:#f0fbf6;font-weight:700}
+  tbody tr:hover td{background:#f6fbff}
+  tbody tr:hover td.opt{background:#fdf3c0}
+  tbody tr:hover td.calc{background:#e7ecf1}
+  tbody tr:hover td.diff{background:#e4f7ee}
+  .rowbtn{cursor:pointer;color:var(--err);font-weight:700}
+  input.cell{border:none;background:transparent;text-align:center;padding:3px 2px;border-radius:5px;width:100%}
+  input.cell:hover{background:#fff8d6}
+  input.cell:focus{background:#fff;outline:2px solid #bfe0ff}
+  select.cell{border:none;background:transparent;text-align:center;padding:2px;width:100%}
+  td.num{font-variant-numeric:tabular-nums}
+  .const-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+  .hint{font-size:11.5px;color:var(--sub);margin-top:6px;line-height:1.55}
+  .legend span{display:inline-flex;align-items:center;gap:5px;margin-right:14px;font-size:12px;color:var(--sub)}
+  .sw{width:14px;height:14px;border-radius:3px;border:1px solid var(--line);display:inline-block}
+  .formula{font-size:12px;color:#334;line-height:1.9}
+  .formula code{background:#f1f5f9;padding:1px 6px;border-radius:5px;font-family:Consolas,monospace;color:#0b4a7a}
+  details summary{cursor:pointer;font-weight:600;color:var(--brand)}
+  .tot{font-size:20px;font-weight:700;color:var(--brand)}
+  .mini-label{font-size:11.5px;color:var(--sub)}
+  .flex{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .spacer{flex:1}
+  .up-cu{color:#b45309;font-weight:600}
+  .up-al{color:#0e7490;font-weight:600}
+  /* 弹窗 */
+  .modal-mask{position:fixed;inset:0;background:rgba(15,30,50,.5);z-index:90;display:none;align-items:center;justify-content:center;padding:16px}
+  .modal-mask.show{display:flex}
+  .modal{background:#fff;border-radius:12px;width:100%;max-width:480px;box-shadow:0 18px 50px rgba(10,30,60,.35);overflow:hidden;animation:pop .16s ease}
+  @keyframes pop{from{transform:translateY(10px);opacity:.5}to{transform:none;opacity:1}}
+  .modal-head{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid var(--line);font-weight:700;color:var(--brand);font-size:14px}
+  .modal-head button{border:none;background:transparent;font-size:15px;cursor:pointer;color:var(--sub)}
+  .modal-body{padding:14px 16px}
+  .modal-body .mb-field{margin-bottom:11px}
+  .modal-body .radio-row{display:flex;gap:18px;margin-top:4px}
+  .modal-body .radio-row label{display:flex;align-items:center;gap:5px;font-size:12.5px;color:var(--ink);cursor:pointer}
+  .modal-body .radio-row input{width:auto}
+  .modal-foot{display:flex;justify-content:flex-end;gap:8px;padding:12px 16px;border-top:1px solid var(--line);background:#f8fafc}
+  .tmsg{font-size:12px;color:#0a8f5f;margin-left:8px}
+</style>
+</head>
+<body>
+
+<!-- ===================== 左侧导航 ===================== -->
+<aside class="sidebar" id="sidebar">
+  <div class="side-head">
+    <div class="logo">❄</div>
+    <div class="side-title">换热估算系统<small>面积 · 容积 · 成本 · 充注量</small></div>
+    <div class="side-actions"><button class="iconbtn" id="collapseBtn" title="折叠/展开">«</button></div>
+  </div>
+  <nav class="nav" id="nav">
+    <div class="nav-group">计算</div>
+    <a class="nav-item" data-target="sec-price"><span class="ico">💰</span><span class="txt">管材价格</span></a>
+    <a class="nav-item" data-target="sec-params"><span class="ico">⚙️</span><span class="txt">计算参数与管规格表</span></a>
+    <a class="nav-item" data-target="sec-table"><span class="ico">📋</span><span class="txt">换热器方案计算表</span></a>
+    <div class="nav-group">分析</div>
+    <a class="nav-item" data-target="sec-summary"><span class="ico">📊</span><span class="txt">汇总与对比</span></a>
+    <a class="nav-item" data-target="sec-charge"><span class="ico">🧪</span><span class="txt">理论冷媒充注量估算</span></a>
+    <div class="nav-group">参考</div>
+    <a class="nav-item" data-target="sec-formula"><span class="ico">📐</span><span class="txt">公式说明</span></a>
+  </nav>
+</aside>
+<div class="backdrop" id="backdrop"></div>
+<button class="menu-btn" id="menuBtn">☰</button>
+
+<div class="wrap" id="main">
+
+  <header class="top">
+    <div>
+      <h1>换热面积 · 容积 · 成本 · 理论充注量 估算系统</h1>
+      <div class="sub">基于《换热面积、容积、胀管材料成本估算V2.0》+《换热面积与冷媒充注量计算表》统一口径 · 支持铜/铝 U 管自动切换与在线金属价格</div>
+    </div>
+  </header>
+
+  <!-- ================= 价格面板 ================= -->
+  <section class="card" id="sec-price">
+    <h2><span class="bar"></span>管材价格 <small>在线获取 / 自定义（元/吨 ⇄ 元/kg 自动换算）</small></h2>
+    <div class="pricebar">
+      <div>
+        <label class="f">价格来源路径</label>
+        <select id="priceSrc">
+          <option value="manual">① 自定义价格（手动输入，离线可用）</option>
+          <option value="em_list">② 东方财富·期货列表（沪铜/沪铝主连，直连）</option>
+          <option value="em_push2">③ 东方财富·行情快照（JSONP）</option>
+          <option value="sina">④ 新浪财经·期货快照（需CORS代理）</option>
+          <option value="auto">⑤ 自动（依次尝试②→③→④）</option>
+        </select>
+      </div>
+      <div>
+        <label class="f">铜价（元/kg）</label>
+        <input id="cuPrice" type="number" step="0.01" value="104">
+        <div class="mini-label" id="cuTon">= 104000 元/吨</div>
+      </div>
+      <div>
+        <label class="f">铝价（元/kg）</label>
+        <input id="alPrice" type="number" step="0.01" value="24">
+        <div class="mini-label" id="alTon">= 24000 元/吨</div>
+      </div>
+      <div>
+        <label class="f">CORS 代理前缀（路径④用）</label>
+        <input id="proxy" type="text" placeholder="https://your-proxy/?url=">
+      </div>
+      <div>
+        <label class="f">&nbsp;</label>
+        <button class="btn" id="fetchBtn">↻ 获取在线价格</button>
+      </div>
+    </div>
+    <div id="priceStatus" class="status" style="margin-top:10px">未获取在线价格 · 当前使用自定义价格</div>
+    <div class="hint">
+      <b>路径说明：</b>② 直连东方财富期货列表接口（返回沪铜主连/沪铝主连，单位元/吨）；
+      ③ 东方财富行情快照（JSONP 跨域）；
+      ④ 新浪财经期货接口强制校验 Referer，浏览器直连会 403，需在左侧填写可用的 CORS 代理前缀（如 <code>https://api.allorigins.win/raw?url=</code>）。
+      在线价格自动 ÷1000 转为元/kg；拉取失败自动保留上一次有效值并提示。
+    </div>
+  </section>
+
+  <!-- ================= 参数设置 ================= -->
+  <section class="card" id="sec-params">
+    <h2><span class="bar"></span>计算参数与管规格表 <small>灰色=自动计算/固定参数，黄色=可填写</small></h2>
+    <div class="const-grid" id="constGrid"></div>
+    <div style="margin-top:14px">
+      <div class="mini-label" style="margin-bottom:6px">内螺纹管规格表（唯一事实来源；内径 = 外径 − 2×壁厚）</div>
+      <div style="overflow:auto;border:1px solid var(--line);border-radius:10px">
+        <table id="specTbl" style="width:100%">
+          <thead>
+            <tr class="cols">
+              <th>规格</th><th>孔距 M (mm)</th><th>外径 Q (mm)</th><th>壁厚 t (mm)</th>
+              <th>内径 P (mm，自动)</th><th>铜米克重 S<sub>Cu</sub> (g/m)</th>
+              <th>铝米克重 (g/m，自动≈×0.3013)</th><th>几何核对值 (g/m)</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="hint">“几何核对值”＝按 外径/壁厚 + 铜密度 8.96 g/cm³ 反算的米克重，用于校验规格表是否自洽（两者接近即合理）。</div>
+    </div>
+  </section>
+
+  <!-- ================= 主表 ================= -->
+  <section class="card" id="sec-table">
+    <h2><span class="bar"></span>换热器方案计算表 <small id="rowCount"></small></h2>
+    <div class="flex" style="margin-bottom:10px">
+      <button class="btn ghost mini" id="addRow">＋ 新增方案</button>
+      <button class="btn ghost mini" id="deriveBtn">🌿 衍生方案</button>
+      <button class="btn ghost mini" id="resetRows">↺ 还原为示例方案（模版1/2/3）</button>
+      <button class="btn ghost mini" id="importBtn">⤒ 导入 CSV</button>
+      <button class="btn ghost mini" id="exportCsv">⤓ 导出 CSV</button>
+      <span class="tmsg" id="tableMsg"></span>
+      <div class="spacer"></div>
+      <span class="legend">
+        <span><i class="sw" style="background:var(--input)"></i>可填写</span>
+        <span><i class="sw" style="background:var(--auto)"></i>自动计算</span>
+        <span><i class="sw" style="background:#f0fbf6"></i>铜/铝差价</span>
+      </span>
+    </div>
+    <div class="tbl-wrap">
+      <table id="mainTbl">
+        <thead>
+          <tr class="grp">
+            <th colspan="3">方案 / 管材</th>
+            <th colspan="6">翅片（铝）</th>
+            <th colspan="12">长 U 管（可铜/铝）</th>
+            <th colspan="6">换热面积 / 容积 / 成本</th>
+            <th colspan="3">铜管 vs 铝管（同方案对比）</th>
+            <th rowspan="2">操作</th>
+          </tr>
+          <tr class="cols">
+            <th>方案名</th><th>管规格</th><th>U管材质</th>
+            <th>片距 D<br>(mm)</th><th>单排片宽 E<br>(mm)</th><th>端板间距<br>(mm)</th>
+            <th>翅片片数<br>G</th><th>翅片重量<br>(kg)</th><th>翅片成本<br>(元)</th>
+            <th>胀高 K<br>(mm)</th><th>长U管数<br>L</th><th>抽U数<br>N</th>
+            <th>孔距 M<br>(mm)</th><th>孔数<br>O</th><th>内径 P<br>(mm)</th><th>外径 Q<br>(mm)</th>
+            <th>下料 R<br>(mm)</th><th>米克重 S<br>(g/m)</th><th>长U重量<br>(kg)</th><th>管价<br>(元/kg)</th>
+            <th>长U成本<br>(元)</th>
+            <th>翅片换热面积<br>(m²)</th><th>管内表面<br>(m²)</th><th>管外表面<br>(m²)</th>
+            <th>总换热面积<br>(m²)</th><th>内容积<br>(L)</th><th>总成本<br>(元)</th>
+            <th>铜管总成本<br>(元)</th><th>铝管总成本<br>(元)</th><th>铜−铝差价<br>(元)</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="hint">
+      管规格决定 孔距/内径/外径/米克重（改规格表即全局生效）；U管材质切到“铝”时，管价自动取铝价、米克重按密度比换算。<br>
+      <b>铜−铝差价</b> = 铜管方案总成本 − 铝管方案总成本（同一行参数下，翅片成本相同，差价即长U管成本之差）；<span style="color:#0a8f5f">正值表示改用铝管可省下的金额</span>。
+    </div>
+  </section>
+
+  <!-- ================= 汇总与图表 ================= -->
+  <section class="card" id="sec-summary">
+    <h2><span class="bar"></span>汇总与对比</h2>
+    <div class="flex" style="margin-bottom:10px">
+      <div><span class="mini-label">方案总数</span> <span class="tot" id="sumCount">0</span></div>
+      <div><span class="mini-label">总成本合计(元)</span> <span class="tot" id="sumCost">0</span></div>
+      <div><span class="mini-label">总换热面积合计(m²)</span> <span class="tot" id="sumArea">0</span></div>
+      <div><span class="mini-label">铜转铝合计可省(元)</span> <span class="tot" id="sumDiff" style="color:#0a8f5f">0</span></div>
+      <div class="spacer"></div>
+      <label class="f" style="margin:0">图表指标：</label>
+      <select id="chartMetric" style="width:auto">
+        <option value="cost">总成本（元）</option>
+        <option value="area">总换热面积（m²）</option>
+        <option value="unitcost">单位面积成本（元/m²）</option>
+        <option value="diff">铜−铝差价（元）</option>
+      </select>
+    </div>
+    <svg id="chart" height="360" style="width:100%"></svg>
+  </section>
+
+  <!-- ================= 冷媒充注量 ================= -->
+  <section class="card" id="sec-charge">
+    <h2><span class="bar"></span>理论冷媒充注量估算 <small>VH=蒸发器容积，VK=冷凝器容积（L），均可从方案内容积中选取</small></h2>
+    <div class="pricebar">
+      <div>
+        <label class="f">蒸发器容积 VH (L)</label>
+        <input id="vh" type="number" step="0.001" value="0.55">
+        <select id="vhFromRow" style="margin-top:4px"><option value="">— 取某方案内容积 —</option></select>
+      </div>
+      <div>
+        <label class="f">冷凝器容积 VK (L)</label>
+        <input id="vk" type="number" step="0.001" value="0.773">
+        <select id="vkFromRow" style="margin-top:4px"><option value="">— 取某方案内容积 —</option></select>
+      </div>
+      <div>
+        <label class="f">实际充注 (kg)</label>
+        <input id="actualCharge" type="number" step="0.001" value="0.74">
+      </div>
+      <div>
+        <label class="f">R410A / R22 充注量</label>
+        <div class="tot" id="g410" style="font-size:17px">-</div>
+        <div class="mini-label">= 0.4·VH + 0.6·VK</div>
+      </div>
+      <div>
+        <label class="f">R32 充注量</label>
+        <div class="tot" id="g32" style="font-size:17px">-</div>
+        <div class="mini-label">= 0.75 × R410A</div>
+      </div>
+      <div>
+        <label class="f">理论/实际 (R32)</label>
+        <div class="tot" id="ratio" style="font-size:17px">-</div>
+      </div>
+    </div>
+    <div class="hint">
+      VH 取该方案（蒸发器/换热器）计算出的内容积；VK 若无独立数据，可同样选某方案内容积或手动填写冷凝器容积。
+      R410A/R22 充注量 G = 0.4·VH + 0.6·VK（kg），R32 充注量 = 0.75 × G。
+    </div>
+  </section>
+
+  <!-- ================= 公式说明 ================= -->
+  <section class="card" id="sec-formula">
+    <h2><span class="bar"></span>公式说明</h2>
+    <details open>
+      <summary>统一口径（点击展开/收起）</summary>
+      <div class="formula" style="margin-top:10px">
+        <b>统一口径（已修正原表相互矛盾之处）：</b><br>
+        1. 翅片片数 <code>G = 端板间距 F ÷ 片距 D</code><br>
+        2. 孔数 <code>O = 长U管数 L×2 + 抽U数 N×2</code><br>
+        3. 胀高 <code>K = 端板间距 F + 端板余量(默认14)</code>；长U下料 <code>R = K×2 + U弯展开余量(默认35.8)</code><br>
+        4. 翅片重量 <code>H = 孔距M × 孔数O × 单排片宽E × 片厚0.095 × 铝密度2.7 × 片数G ÷ 10⁶</code>（kg）<br>
+        5. 翅片成本 <code>J = 铝价 × H</code>；长U成本 <code>V = 管价 × 长U重量</code>，<code>长U重量 T = 米克重S × 下料R × 长U管数L ÷ 10⁶</code>（kg）<br>
+        6. 翅片换热面积 <code>W = (孔距M×孔数O×单排片宽E − π/4×外径Q²×孔数O) × 片数G ÷ 10⁶</code>（扣除管孔；M×O×E 即整片面积）<br>
+        7. 管表面积（取<b>翅片段长度 2K</b>，不含U弯，修正原表用整段下料高估 1.4%~3.3%）：<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;管内表面 <code>X = 2K × π × 内径P × L ÷ 10⁶</code>；管外表面 <code>Y = 2K × π × 外径Q × L ÷ 10⁶</code><br>
+        8. 总换热面积 <code>Z = W + Y</code>；总成本 <code>AA = V + J</code><br>
+        9. 管内容积（含U弯全管长，用于冷媒充注）<code>Vol = π/4 × 内径P² × 下料R × L ÷ 10⁶</code>（L）<br>
+        10. 内径 <code>P = 外径Q − 2×壁厚t</code>；铝管米克重 <code>S_Al = S_Cu × 2.70/8.96</code>（可覆盖）<br>
+        11. 铜−铝差价 <code>Δ = AA(铜管) − AA(铝管) = V(铜) − V(铝)</code>（翅片成本相同而抵消）<br>
+        <b>价格：</b>在线接口返回元/吨，页面自动 ÷1000 转元/kg（如 109420 元/吨 → 109.42 元/kg）。
+      </div>
+    </details>
+  </section>
+
+  <div class="hint" style="text-align:center;margin-top:18px">
+    本页为单文件离线工具，数据仅存于本地浏览器（localStorage）。价格接口为公开行情，仅供参考。
+  </div>
+</div>
+
+<!-- ===================== 通用弹窗 ===================== -->
+<div class="modal-mask" id="modalMask">
+  <div class="modal">
+    <div class="modal-head"><span id="modalTitle">标题</span><button id="modalClose" title="关闭">✕</button></div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-foot">
+      <button class="btn ghost" id="modalCancel">取消</button>
+      <button class="btn" id="modalOk">确定</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* =========================================================
+   1. 数据模型
+   ========================================================= */
+const LSKEY = "hxq_v2";
+
+const DEFAULT_SPECS = {
+  "φ5":   {pitch:19.5, od:5,    wall:0.23, scu:31},
+  "φ7":   {pitch:21,   od:7,    wall:0.25, scu:46.6},
+  "φ9.52":{pitch:21,   od:9.52, wall:0.32, scu:82}
+};
+
+const DEFAULT_CONSTS = {
+  plateExtra: 14, bendAllow: 35.8, finThk: 0.095,
+  finDens: 2.7, cuDens: 8.96, alDens: 2.70
+};
+
+/* 示例数据仅保留 模版1 / 模版2 / 模版3 */
+const PRESET_ROWS = [
+  {name:"模版1", spec:"φ7", material:"cu", finPitch:1.4, finWidth:12.7, plateGap:600,  uCount:18, drawU:0},
+  {name:"模版2", spec:"φ5", material:"cu", finPitch:1.2, finWidth:11.6, plateGap:1150, uCount:40, drawU:0},
+  {name:"模版3", spec:"φ5", material:"cu", finPitch:1.2, finWidth:11.6, plateGap:1000, uCount:57, drawU:0}
+];
+
+let state = {
+  specs:  deepCopy(DEFAULT_SPECS),
+  consts: deepCopy(DEFAULT_CONSTS),
+  rows:   deepCopy(PRESET_ROWS),
+  prices: {cu:104, al:24, src:"manual", time:""},
+  charge: {vh:0.55, vk:0.773, actual:0.74},
+  chartMetric: "cost",
+  selRow: null,
+  seq: 0
+};
+
+function deepCopy(o){ return JSON.parse(JSON.stringify(o)); }
+function uid(){ return "r" + (++state.seq) + "_" + Date.now().toString(36); }
+state.rows.forEach(r=>r.id=uid());
+
+/* =========================================================
+   2. 计算内核
+   ========================================================= */
+const PI = Math.PI;
+
+function computeFor(row, material){
+  const sp = state.specs[row.spec] || state.specs["φ7"];
+  const C  = state.consts;
+
+  const M = sp.pitch;
+  const Q = sp.od;
+  const P = sp.od - 2*sp.wall;
+  const isCu = material === "cu";
+  const S = isCu ? sp.scu : sp.scu * C.alDens / C.cuDens;
+
+  const K  = row.plateGap + C.plateExtra;
+  const R  = K*2 + C.bendAllow;
+  const G  = row.plateGap / safe(row.finPitch);
+  const O  = (row.uCount||0)*2 + (row.drawU||0)*2;
+  const L  = row.uCount||0;
+
+  const H  = M*O*row.finWidth*C.finThk*C.finDens*G/1e6;
+  const J  = state.prices.al * H;
+  const T  = S*R*L/1e6;
+  const Up = isCu ? state.prices.cu : state.prices.al;
+  const V  = Up*T;
+
+  const W  = (M*O*row.finWidth - PI/4*Q*Q*O)*G/1e6;
+  const Lf = 2*K;
+  const X  = Lf*P*PI*L/1e6;
+  const Y  = Lf*L*PI*Q/1e6;
+  const Z  = W + Y;
+  const Vol= PI/4*P*P*R*L/1e6;
+  const AA = V + J;
+
+  return {M,Q,P,S,K,R,G,O,L,H,J,T,Up,V,W,X,Y,Z,Vol,AA,isCu,unitCost:Z>0?AA/Z:0};
+}
+function compute(row){ return computeFor(row, row.material); }
+function safe(x){ return (x===0||x==null||isNaN(x))?NaN:x; }
+
+/* =========================================================
+   3. 工具
+   ========================================================= */
+function fmt(x,d){ if(x==null||isNaN(x)||!isFinite(x)) return "-";
+  return Number(x).toLocaleString("zh-CN",{minimumFractionDigits:d,maximumFractionDigits:d}); }
+const f0=x=>fmt(x,0), f1=x=>fmt(x,1), f2=x=>fmt(x,2), f3=x=>fmt(x,3), f4=x=>fmt(x,4);
+function el(tag,cls,html){ const e=document.createElement(tag); if(cls)e.className=cls; if(html!=null)e.innerHTML=html; return e; }
+function $(id){ return document.getElementById(id); }
+function escapeXml(t){ return String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+/* =========================================================
+   4. 计算参数
+   ========================================================= */
+const CONST_DEFS = [
+  ["plateExtra","端板余量 (mm)","胀高 = 端板间距 + 端板余量"],
+  ["bendAllow","U弯展开余量 (mm)","长U下料 = 胀高×2 + U弯展开余量"],
+  ["finThk","翅片片厚 (mm)","用于翅片重量"],
+  ["finDens","翅片铝密度 (g/cm³)","用于翅片重量"],
+  ["cuDens","铜密度 (g/cm³)","铝/铜米克重换算基准"],
+  ["alDens","铝密度 (g/cm³)","铝管米克重 = 铜米克重 × 铝密度/铜密度"]
+];
+function renderConsts(){
+  const g = $("constGrid"); g.innerHTML="";
+  CONST_DEFS.forEach(([k,label,tip])=>{
+    const d = el("div");
+    d.innerHTML = `<label class="f" title="${tip}">${label}</label>
+      <input type="number" step="0.001" data-const="${k}" value="${state.consts[k]}">`;
+    g.appendChild(d);
+  });
+  g.querySelectorAll("input[data-const]").forEach(inp=>{
+    inp.addEventListener("input",()=>{
+      const v=parseFloat(inp.value); if(!isNaN(v)){ state.consts[inp.dataset.const]=v; recalcAll(); }
+    });
+  });
+}
+
+/* =========================================================
+   5. 管规格表
+   ========================================================= */
+function renderSpecs(){
+  const tb = $("specTbl").querySelector("tbody"); tb.innerHTML="";
+  Object.keys(state.specs).forEach(key=>{
+    const sp = state.specs[key];
+    const id = sp.od - 2*sp.wall;
+    const geo = PI/4*(sp.od*sp.od - id*id)*state.consts.cuDens*1e-3*1000;
+    const alScu = sp.scu*state.consts.alDens/state.consts.cuDens;
+    const tr = el("tr");
+    tr.innerHTML = `
+      <td class="name">${key}</td>
+      <td class="opt"><input class="cell" type="number" step="0.1" data-spec="${key}" data-k="pitch" value="${sp.pitch}"></td>
+      <td class="opt"><input class="cell" type="number" step="0.01" data-spec="${key}" data-k="od" value="${sp.od}"></td>
+      <td class="opt"><input class="cell" type="number" step="0.01" data-spec="${key}" data-k="wall" value="${sp.wall}"></td>
+      <td class="calc">${fmt(id,2)}</td>
+      <td class="opt"><input class="cell" type="number" step="0.1" data-spec="${key}" data-k="scu" value="${sp.scu}"></td>
+      <td class="calc">${fmt(alScu,1)}</td>
+      <td class="calc">${fmt(geo,1)}</td>`;
+    tb.appendChild(tr);
+  });
+  tb.querySelectorAll("input[data-spec]").forEach(inp=>{
+    inp.addEventListener("input",()=>{
+      const v=parseFloat(inp.value);
+      if(!isNaN(v)){ state.specs[inp.dataset.spec][inp.dataset.k]=v; renderSpecs(); recalcAll(); }
+    });
+  });
+}
+
+/* =========================================================
+   6. 主表
+   ========================================================= */
+function renderTable(){
+  const tb = $("mainTbl").querySelector("tbody"); tb.innerHTML="";
+  state.rows.forEach(row=>{
+    const c  = compute(row);
+    const cC = computeFor(row,"cu");
+    const cA = computeFor(row,"al");
+    const diff = cC.AA - cA.AA;
+    const tr = el("tr"); tr.dataset.id = row.id;
+    if(state.selRow===row.id) tr.classList.add("sel");
+    const specOpts = Object.keys(state.specs).map(k=>`<option value="${k}" ${k===row.spec?"selected":""}>${k}</option>`).join("");
+    const matOpts = `<option value="cu" ${row.material==="cu"?"selected":""}>铜管</option>
+                     <option value="al" ${row.material==="al"?"selected":""}>铝管</option>`;
+    tr.innerHTML = `
+      <td class="name"><input class="cell" style="text-align:left" data-id="${row.id}" data-f="name" value="${row.name||''}"></td>
+      <td class="opt"><select class="cell" data-id="${row.id}" data-f="spec">${specOpts}</select></td>
+      <td class="opt"><select class="cell" data-id="${row.id}" data-f="material">${matOpts}</select></td>
+      <td class="opt"><input class="cell" type="number" step="0.1" data-id="${row.id}" data-f="finPitch" value="${row.finPitch}"></td>
+      <td class="opt"><input class="cell" type="number" step="0.1" data-id="${row.id}" data-f="finWidth" value="${row.finWidth}"></td>
+      <td class="opt"><input class="cell" type="number" step="0.1" data-id="${row.id}" data-f="plateGap" value="${row.plateGap}"></td>
+      <td class="calc num">${f1(c.G)}</td>
+      <td class="calc num">${f4(c.H)}</td>
+      <td class="calc num">${f2(c.J)}</td>
+      <td class="calc num">${f1(c.K)}</td>
+      <td class="opt"><input class="cell" type="number" step="1" data-id="${row.id}" data-f="uCount" value="${row.uCount}"></td>
+      <td class="opt"><input class="cell" type="number" step="1" data-id="${row.id}" data-f="drawU" value="${row.drawU}"></td>
+      <td class="calc num">${f1(c.M)}</td>
+      <td class="calc num">${f0(c.O)}</td>
+      <td class="calc num">${f2(c.P)}</td>
+      <td class="calc num">${f2(c.Q)}</td>
+      <td class="calc num">${f1(c.R)}</td>
+      <td class="calc num">${f1(c.S)}</td>
+      <td class="calc num">${f4(c.T)}</td>
+      <td class="calc num ${c.isCu?'up-cu':'up-al'}">${f2(c.Up)}</td>
+      <td class="calc num">${f2(c.V)}</td>
+      <td class="calc num">${f4(c.W)}</td>
+      <td class="calc num">${f4(c.X)}</td>
+      <td class="calc num">${f4(c.Y)}</td>
+      <td class="calc num" style="font-weight:600">${f4(c.Z)}</td>
+      <td class="calc num">${f4(c.Vol)}</td>
+      <td class="calc num" style="font-weight:700;color:#0f6fbf">${f2(c.AA)}</td>
+      <td class="calc num">${f2(cC.AA)}</td>
+      <td class="calc num">${f2(cA.AA)}</td>
+      <td class="diff num" title="铜管总成本 − 铝管总成本；正值=改用铝管可省" style="color:${diff>=0?'#0a8f5f':'#d94848'}">${fmt(diff,2)}</td>
+      <td><span class="rowbtn" data-del="${row.id}" title="删除">✕</span></td>`;
+    tb.appendChild(tr);
+  });
+  bindTableEvents();
+  $("rowCount").textContent = `共 ${state.rows.length} 个方案`;
+  refreshVolOptions();
+}
+
+function bindTableEvents(){
+  const tb = $("mainTbl").querySelector("tbody");
+  tb.querySelectorAll("input[data-id],select[data-id]").forEach(inp=>{
+    const ev = inp.tagName==="SELECT" ? "change" : "input";
+    inp.addEventListener(ev,()=>{
+      const row = state.rows.find(r=>r.id===inp.dataset.id); if(!row) return;
+      const f = inp.dataset.f;
+      row[f] = (inp.type==="number") ? (inp.value===""?0:parseFloat(inp.value)) : inp.value;
+      updateRow(row.id);
+      save();
+    });
+  });
+  tb.querySelectorAll("[data-del]").forEach(b=>{
+    b.addEventListener("click",()=>{
+      state.rows = state.rows.filter(r=>r.id!==b.dataset.del);
+      save(); recalcAll();
+    });
+  });
+}
+
+const COL = {G:6,H:7,J:8,K:9,M:12,O:13,P:14,Q:15,R:16,S:17,T:18,Up:19,V:20,W:21,X:22,Y:23,Z:24,Vol:25,AA:26,CC:27,CA:28,DIFF:29};
+function updateRow(id){
+  const row = state.rows.find(r=>r.id===id); if(!row) return;
+  const tr = $("mainTbl").querySelector(`tbody tr[data-id="${id}"]`); if(!tr) return;
+  const c = compute(row), cC = computeFor(row,"cu"), cA = computeFor(row,"al");
+  const diff = cC.AA - cA.AA;
+  const set=(i,val)=>{ if(tr.children[i]) tr.children[i].textContent = val; };
+  set(COL.G,f1(c.G)); set(COL.H,f4(c.H)); set(COL.J,f2(c.J)); set(COL.K,f1(c.K));
+  set(COL.M,f1(c.M)); set(COL.O,f0(c.O)); set(COL.P,f2(c.P)); set(COL.Q,f2(c.Q));
+  set(COL.R,f1(c.R)); set(COL.S,f1(c.S)); set(COL.T,f4(c.T));
+  const upCell = tr.children[COL.Up];
+  if(upCell){ upCell.textContent = f2(c.Up); upCell.className = "calc num "+(c.isCu?"up-cu":"up-al"); }
+  set(COL.V,f2(c.V)); set(COL.W,f4(c.W)); set(COL.X,f4(c.X)); set(COL.Y,f4(c.Y));
+  set(COL.Z,f4(c.Z)); set(COL.Vol,f4(c.Vol)); set(COL.AA,f2(c.AA));
+  set(COL.CC,f2(cC.AA)); set(COL.CA,f2(cA.AA));
+  const dCell=tr.children[COL.DIFF];
+  if(dCell){ dCell.textContent=fmt(diff,2); dCell.style.color = diff>=0?"#0a8f5f":"#d94848"; }
+  refreshSummary();
+}
+
+/* =========================================================
+   7. 汇总 + 图表
+   ========================================================= */
+function refreshSummary(){
+  let sc=0, sa=0, sd=0;
+  state.rows.forEach(r=>{ const c=compute(r); sc+=c.AA; sa+=c.Z; sd+= (computeFor(r,"cu").AA - computeFor(r,"al").AA); });
+  $("sumCount").textContent = state.rows.length;
+  $("sumCost").textContent  = f0(sc);
+  $("sumArea").textContent  = f2(sa);
+  $("sumDiff").textContent  = f0(sd);
+  drawChart();
+}
+function drawChart(){
+  const svg = $("chart");
+  const metric = state.chartMetric;
+  const W = svg.clientWidth || 1000, H = 360;
+  const padL = 74, padR = 20, padT = 20, padB = 96;
+  const rows = state.rows.map(r=>{
+    const c=compute(r);
+    let v;
+    if(metric==="cost") v=c.AA;
+    else if(metric==="area") v=c.Z;
+    else if(metric==="unitcost") v=c.unitCost;
+    else if(metric==="diff") v=(computeFor(r,"cu").AA - computeFor(r,"al").AA);
+    return {name:r.name, v, mat:r.material, sel:r.id===state.selRow};
+  });
+  const maxV = Math.max(1, ...rows.map(r=>isFinite(r.v)?r.v:0));
+  const bw = rows.length? Math.max((W-padL-padR)/rows.length, 60) : 0;
+  const barW = Math.min(bw*0.62, 56);
+  const unit = metric==="area"?"m²":(metric==="unitcost"?"元/m²":"元");
+  let s = `<rect x="0" y="0" width="${W}" height="${H}" fill="#fff"/>`;
+  for(let i=0;i<=4;i++){
+    const y = padT + (H-padT-padB)*i/4;
+    const val = maxV*(1-i/4);
+    s += `<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="#eef2f7"/>`;
+    s += `<text x="${padL-8}" y="${y+4}" text-anchor="end" font-size="11" fill="#94a3b8">${fmt(val, metric==="area"?2:0)}</text>`;
+  }
+  s += `<text x="${padL-8}" y="${padT-6}" text-anchor="end" font-size="11" fill="#64748b">${unit}</text>`;
+  rows.forEach((r,i)=>{
+    const x = padL + bw*i + (bw-barW)/2;
+    const h = (H-padT-padB) * (isFinite(r.v)?Math.max(r.v,0):0)/maxV;
+    const y = H-padB-h;
+    const color = metric==="diff" ? "#0a8f5f" : (r.mat==="al" ? "#0891b2" : "#2563eb");
+    s += `<rect x="${x}" y="${y}" width="${barW}" height="${Math.max(h,0)}" rx="3" fill="${color}" opacity="${r.sel?1:.85}" stroke="${r.sel?'#0f172a':'none'}"/>`;
+    s += `<text x="${x+barW/2}" y="${y-4}" text-anchor="middle" font-size="10.5" fill="#334">${fmt(r.v, metric==="area"?2:1)}</text>`;
+    const lx = x+barW/2, ly = H-padB+12;
+    const nm = r.name.length>8? r.name.slice(0,8)+"…" : r.name;
+    s += `<text x="${lx}" y="${ly}" transform="rotate(35 ${lx} ${ly})" font-size="10.5" fill="#475569" text-anchor="start">${escapeXml(nm)}</text>`;
+  });
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.innerHTML = s;
+}
+
+/* =========================================================
+   8. 冷媒充注量
+   ========================================================= */
+function computeCharge(){
+  const vh = parseFloat($("vh").value)||0;
+  const vk = parseFloat($("vk").value)||0;
+  const ac = parseFloat($("actualCharge").value)||0;
+  const g410 = 0.4*vh + 0.6*vk;
+  const g32  = 0.75*g410;
+  $("g410").textContent = fmt(g410,4)+" kg";
+  $("g32").textContent  = fmt(g32,4)+" kg";
+  $("ratio").textContent = ac>0 ? fmt(g32/ac*100,1)+" %" : "-";
+}
+function refreshVolOptions(){
+  const opts = state.rows.map(r=>`<option value="${r.id}">${escapeXml(r.name)}（${fmt(compute(r).Vol,4)} L）</option>`).join("");
+  ["vhFromRow","vkFromRow"].forEach(id=>{
+    const sel=$(id); const cur=sel.value;
+    sel.innerHTML = `<option value="">— 取某方案内容积 —</option>` + opts;
+    sel.value = cur;
+  });
+}
+
+/* =========================================================
+   9. 价格获取
+   ========================================================= */
+function setStatus(msg, cls){
+  const s = $("priceStatus"); s.className = "status" + (cls?" "+cls:""); s.innerHTML = msg;
+}
+function updateTon(){
+  const cu = parseFloat($("cuPrice").value)||0, al = parseFloat($("alPrice").value)||0;
+  $("cuTon").textContent = "= " + fmt(cu*1000,0) + " 元/吨";
+  $("alTon").textContent = "= " + fmt(al*1000,0) + " 元/吨";
+}
+function fetchTimeout(url, opts, ms){
+  const ctrl = new AbortController();
+  const t = setTimeout(()=>ctrl.abort(), ms||12000);
+  return fetch(url, Object.assign({signal:ctrl.signal}, opts)).finally(()=>clearTimeout(t));
+}
+function jsonp(url, cbParam, ms){
+  return new Promise((resolve,reject)=>{
+    const cbName = "jp_cb_" + Math.random().toString(36).slice(2);
+    const sep = url.indexOf("?")>=0 ? "&" : "?";
+    const script = document.createElement("script");
+    let done=false, to=null;
+    const cleanup = ()=>{ if(to) clearTimeout(to); delete window[cbName]; if(script.parentNode) script.parentNode.removeChild(script); };
+    window[cbName] = (data)=>{ done=true; resolve(data); cleanup(); };
+    script.src = url + sep + cbParam + "=" + cbName;
+    script.onerror = ()=>{ if(!done){ cleanup(); reject(new Error("jsonp error")); } };
+    to = setTimeout(()=>{ if(!done){ cleanup(); reject(new Error("jsonp timeout")); } }, ms||12000);
+    document.head.appendChild(script);
+  });
+}
+async function srcEmList(){
+  const r = await fetchTimeout("https://futsseapi.eastmoney.com/list/113?orderBy=dm&sort=asc&pageSize=300&pageIndex=0", {}, 15000);
+  const j = await r.json();
+  let cu=null, al=null;
+  (j.list||[]).forEach(it=>{ if(it.name==="沪铜主连") cu=it.p; if(it.name==="沪铝主连") al=it.p; });
+  if(cu==null||al==null) throw new Error("未找到沪铜/沪铝主连");
+  return {cu:cu/1000, al:al/1000, cuTon:cu, alTon:al, src:"东方财富·期货列表"};
+}
+async function srcEmPush2(){
+  const data = await jsonp("https://push2.eastmoney.com/api/qt/ulist.np/get?fltt=2&secids=113.cum,113.alm&fields=f2,f12,f14", "cb", 12000);
+  const diff = (data && data.data && data.data.diff) || [];
+  let cu=null, al=null;
+  diff.forEach(d=>{ if(d.f12==="cum") cu=d.f2; if(d.f12==="alm") al=d.f2; });
+  if(cu==null||al==null) throw new Error("快照无数据");
+  return {cu:cu/1000, al:al/1000, cuTon:cu, alTon:al, src:"东方财富·行情快照"};
+}
+async function srcSina(){
+  const proxy = $("proxy").value.trim();
+  if(!proxy) throw new Error("未填写 CORS 代理前缀");
+  const url = proxy + encodeURIComponent("https://hq.sinajs.cn/list=nf_CU0,nf_AL0");
+  const r = await fetchTimeout(url, {}, 15000);
+  const txt = await r.text();
+  const get = (key)=>{
+    const m = txt.match(new RegExp("hq_str_"+key+"=\"([^\"]*)\""));
+    if(!m) return null;
+    const f = m[1].split(","); const v = parseFloat(f[8]);
+    return isNaN(v)?null:v;
+  };
+  const cu=get("nf_CU0"), al=get("nf_AL0");
+  if(cu==null||al==null) throw new Error("解析失败");
+  return {cu:cu/1000, al:al/1000, cuTon:cu, alTon:al, src:"新浪财经·期货快照"};
+}
+async function doFetch(){
+  const src = $("priceSrc").value;
+  const btn = $("fetchBtn"); btn.disabled=true; btn.textContent="获取中…";
+  try{
+    let res=null, errs=[];
+    if(src==="manual"){ setStatus("已选择“自定义价格”，请直接编辑铜价/铝价输入框。","warn"); return; }
+    else if(src==="auto"){
+      for(const fn of [srcEmList, srcEmPush2, srcSina]){
+        try{ res = await fn(); break; }catch(e){ errs.push(e.message); }
+      }
+      if(!res) throw new Error(errs.join("；"));
+    } else {
+      res = await ({em_list:srcEmList, em_push2:srcEmPush2, sina:srcSina}[src])();
+    }
+    const now = new Date().toLocaleString("zh-CN");
+    state.prices.cu = +res.cu.toFixed(2);
+    state.prices.al = +res.al.toFixed(2);
+    state.prices.src = res.src; state.prices.time = now;
+    $("cuPrice").value = state.prices.cu;
+    $("alPrice").value = state.prices.al;
+    updateTon(); recalcAll(); save();
+    setStatus(`✅ 来源：<b>${res.src}</b> · 更新时间 ${now}<br>
+      沪铜主连 ${fmt(res.cuTon,0)} 元/吨（${fmt(res.cu,2)} 元/kg）｜
+      沪铝主连 ${fmt(res.alTon,0)} 元/吨（${fmt(res.al,2)} 元/kg）`,"ok");
+  }catch(e){
+    setStatus(`⚠️ 在线获取失败：${e.message}<br>已保留当前价格（${fmt(parseFloat($("cuPrice").value),2)} / ${fmt(parseFloat($("alPrice").value),2)} 元/kg）。可改用其他路径或自定义。`,"err");
+  }finally{ btn.disabled=false; btn.textContent="↻ 获取在线价格"; }
+}
+
+/* =========================================================
+   10. 导出 / 持久化
+   ========================================================= */
+function r0(x){ return (x==null||isNaN(x)||!isFinite(x))?"":Number(x.toFixed(6)); }
+function exportCsv(){
+  const head = ["方案名","管规格","U管材质","片距D","单排片宽E","端板间距F","翅片片数G","翅片重量kg","翅片成本",
+    "胀高K","长U管数L","抽U数N","孔距M","孔数O","内径P","外径Q","下料R","米克重S","长U重量kg","管价","长U成本",
+    "翅片换热面积","管内表面","管外表面","总换热面积","内容积L","总成本","铜管总成本","铝管总成本","铜-铝差价"];
+  const lines = [head.join(",")];
+  state.rows.forEach(r=>{
+    const c=compute(r), cC=computeFor(r,"cu"), cA=computeFor(r,"al");
+    lines.push([r.name,r.spec,r.material==="cu"?"铜管":"铝管",r.finPitch,r.finWidth,r.plateGap,
+      r0(c.G),r0(c.H),r0(c.J),r0(c.K),r.uCount,r.drawU,r0(c.M),r0(c.O),r0(c.P),r0(c.Q),r0(c.R),r0(c.S),
+      r0(c.T),r0(c.Up),r0(c.V),r0(c.W),r0(c.X),r0(c.Y),r0(c.Z),r0(c.Vol),r0(c.AA),
+      r0(cC.AA),r0(cA.AA),r0(cC.AA-cA.AA)].join(","));
+  });
+  const blob = new Blob(["\uFEFF"+lines.join("\r\n")],{type:"text/csv;charset=utf-8"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "换热器成本估算_"+new Date().toISOString().slice(0,10)+".csv";
+  a.click(); URL.revokeObjectURL(a.href);
+}
+
+/* =========================================================
+   10.5 通用弹窗 / 衍生方案 / 导入CSV
+   ========================================================= */
+let modalOkHandler = null;
+let pendingImport  = null;
+
+function openModal(title, bodyHTML, onOk, okText){
+  $("modalTitle").textContent = title;
+  $("modalBody").innerHTML = bodyHTML;
+  $("modalOk").textContent = okText || "确定";
+  modalOkHandler = onOk;
+  $("modalMask").classList.add("show");
+}
+function closeModal(){ $("modalMask").classList.remove("show"); modalOkHandler = null; }
+function initModal(){
+  $("modalClose").addEventListener("click", closeModal);
+  $("modalCancel").addEventListener("click", closeModal);
+  $("modalMask").addEventListener("click",(e)=>{ if(e.target===$("modalMask")) closeModal(); });
+  $("modalOk").addEventListener("click", ()=>{ if(modalOkHandler) modalOkHandler(); });
+}
+function setTableMsg(t){
+  const m=$("tableMsg"); m.textContent=t;
+  if(t){ clearTimeout(m._t); m._t=setTimeout(()=>m.textContent="", 6000); }
+}
+
+/* ---------- 衍生方案 ---------- */
+function openDerive(){
+  if(!state.rows.length){ setTableMsg("当前没有可衍生的方案，请先新增。"); return; }
+  const opts = state.rows.map(r=>
+    `<option value="${r.id}">${escapeXml(r.name)}（${r.spec} · ${r.material==="cu"?"铜管":"铝管"} · 端板 ${r.plateGap}mm）</option>`).join("");
+  openModal("衍生方案",
+    `<div class="mb-field">
+       <label class="f">基于哪一组已有数据衍生</label>
+       <select id="deriveBase">${opts}</select>
+     </div>
+     <div class="mb-field">
+       <label class="f">新方案名称（留空则自动命名）</label>
+       <input id="deriveName" placeholder="如 模版1-衍生">
+     </div>
+     <div class="mb-field">
+       <label class="f">衍生份数</label>
+       <input id="deriveCount" type="number" min="1" max="50" value="1">
+     </div>
+     <div class="hint">衍生方案会复制基准方案的全部输入参数（管规格、U管材质、片距、单排片宽、端板间距、长U管数、抽U数），生成后可再单独修改。</div>`,
+    ()=>{
+      const base = state.rows.find(r=>r.id===$("deriveBase").value);
+      if(!base) return;
+      let n = parseInt($("deriveCount").value,10);
+      if(isNaN(n)||n<1) n=1; if(n>50) n=50;
+      const nm = ($("deriveName").value||"").trim();
+      for(let i=1;i<=n;i++){
+        const nr = JSON.parse(JSON.stringify(base));
+        nr.id = uid();
+        nr.name = nm ? (n>1 ? nm+"-"+i : nm)
+                     : (base.name + "-衍生" + (n>1 ? i : ""));
+        state.rows.push(nr);
+      }
+      closeModal(); save(); recalcAll();
+      setTableMsg(`已衍生 ${n} 个方案（基准：${base.name}）`);
+    }, "衍 生");
+}
+
+/* ---------- 导入 CSV ---------- */
+const HEADER_MAP = [
+  ["name",      ["方案名","名称","方案"]],
+  ["spec",      ["管规格","规格"]],
+  ["material",  ["材质"]],
+  ["finPitch",  ["片距"]],
+  ["finWidth",  ["片宽"]],
+  ["plateGap",  ["端板间距","端板"]],
+  ["uCount",    ["长u管数"]],
+  ["drawU",     ["抽u数"]]
+];
+function resolveHeader(h){
+  const s = String(h==null?"":h).replace(/\s/g,"").replace(/^\uFEFF/,"").toLowerCase();
+  if(!s) return null;
+  for(const [f,keys] of HEADER_MAP){ for(const k of keys){ if(s.includes(k)) return f; } }
+  return null;
+}
+function matchSpec(v){
+  const s = String(v==null?"":v).trim();
+  if(!s) return "φ7";
+  if(state.specs[s]) return s;
+  const target = parseFloat(s.replace(/[^0-9.]/g,""));
+  if(!isNaN(target)){
+    for(const k of Object.keys(state.specs)){
+      if(parseFloat(k.replace(/[^0-9.]/g,"")) === target) return k;
+    }
+  }
+  return "φ7";
+}
+function toNum(v){ const x=parseFloat(v); return isNaN(x)?0:x; }
+function parseCsv(text){
+  text = String(text).replace(/^\uFEFF/,"");
+  const rows=[]; let cur=[], field="", i=0, inQ=false;
+  while(i < text.length){
+    const ch = text[i];
+    if(inQ){
+      if(ch === '"'){
+        if(text[i+1] === '"'){ field += '"'; i += 2; continue; }
+        inQ = false; i++; continue;
+      }
+      field += ch; i++; continue;
+    } else {
+      if(ch === '"'){ inQ = true; i++; continue; }
+      if(ch === ","){ cur.push(field); field=""; i++; continue; }
+      if(ch === "\r"){ i++; continue; }
+      if(ch === "\n"){ cur.push(field); rows.push(cur); cur=[]; field=""; i++; continue; }
+      field += ch; i++;
+    }
+  }
+  if(field !== "" || cur.length){ cur.push(field); rows.push(cur); }
+  return rows.filter(r=>r.some(c=>String(c).trim()!==""));
+}
+function decodeBuffer(buf){
+  let t = new TextDecoder("utf-8",{fatal:false}).decode(buf);
+  if(t.indexOf("\uFFFD") >= 0){
+    try{ t = new TextDecoder("gbk").decode(buf); }catch(e){}
+  }
+  return t;
+}
+async function previewCsv(e){
+  const file = e.target.files[0]; if(!file) return;
+  const buf = await file.arrayBuffer();
+  const rows = parseCsv(decodeBuffer(buf));
+  const box = $("impPreview");
+  if(!rows.length){ box.textContent = "文件为空或无法解析。"; pendingImport = null; return; }
+  const header = rows[0];
+  const fields = header.map(resolveHeader);
+  const _seen = new Set();
+  fields.forEach((f,i)=>{ if(f){ if(_seen.has(f)) fields[i]=null; else _seen.add(f); } });
+  const dataRows = rows.slice(1).map(r=>{
+    const o={};
+    fields.forEach((f,i)=>{ if(f) o[f]=r[i]; });
+    return o;
+  }).filter(o => o.name!==undefined || o.finPitch!==undefined || o.plateGap!==undefined);
+  pendingImport = dataRows;
+  const matched = fields.filter(Boolean).length;
+  const missing  = HEADER_MAP.filter(([f])=>!fields.includes(f)).map(([f])=>f);
+  box.innerHTML =
+    `识别到 <b style="color:#0a8f5f">${dataRows.length}</b> 行数据，匹配到 <b>${matched}</b> 个输入列。` +
+    (missing.length ? `<br>⚠️ 未识别列：${escapeXml(missing.join("、"))}（将按默认值/空值处理）` : "") +
+    `<br><span style="opacity:.85">表头：${escapeXml(header.join(" ｜ "))}</span>`;
+}
+function openImport(){
+  pendingImport = null;
+  openModal("导入 CSV",
+    `<div class="mb-field">
+       <label class="f">选择 CSV 文件（支持本系统导出的格式，自动识别 UTF-8 / GBK 编码）</label>
+       <input type="file" id="csvFile" accept=".csv,text/csv">
+     </div>
+     <div class="mb-field">
+       <label class="f">导入方式</label>
+       <div class="radio-row">
+         <label><input type="radio" name="impMode" value="append" checked> 追加到现有方案</label>
+         <label><input type="radio" name="impMode" value="replace"> 覆盖现有方案</label>
+       </div>
+     </div>
+     <div class="hint" id="impPreview">仅读取输入列（方案名 / 管规格 / 材质 / 片距 / 单排片宽 / 端板间距 / 长U管数 / 抽U数），其余列导入后自动重算。</div>`,
+    ()=>{
+      if(!pendingImport || !pendingImport.length){
+        $("impPreview").innerHTML = "⚠️ 请先选择有效的 CSV 文件。";
+        return;
+      }
+      const mode = (document.querySelector('input[name="impMode"]:checked')||{}).value || "append";
+      const newRows = pendingImport.map((o,i)=>({
+        id: uid(),
+        name: (o.name==null?"":String(o.name).trim()) || ("导入方案"+(i+1)),
+        spec: matchSpec(o.spec),
+        material: String(o.material||"").indexOf("铝")>=0 ? "al" : "cu",
+        finPitch: toNum(o.finPitch),
+        finWidth: toNum(o.finWidth),
+        plateGap: toNum(o.plateGap),
+        uCount:   Math.round(toNum(o.uCount)),
+        drawU:    Math.round(toNum(o.drawU))
+      }));
+      state.rows = (mode==="replace") ? newRows : state.rows.concat(newRows);
+      pendingImport = null;
+      closeModal(); save(); recalcAll();
+      setTableMsg(`已${mode==="replace"?"覆盖导入":"追加导入"} ${newRows.length} 个方案`);
+    }, "导 入");
+  $("csvFile").addEventListener("change", previewCsv);
+}
+
+function save(){
+  try{
+    localStorage.setItem(LSKEY, JSON.stringify({
+      specs:state.specs, consts:state.consts,
+      rows:state.rows.map(r=>({...r})),
+      prices:{cu:state.prices.cu, al:state.prices.al},
+      charge:state.charge, chartMetric:state.chartMetric, seq:state.seq
+    }));
+  }catch(e){}
+}
+function load(){
+  try{
+    const s = localStorage.getItem(LSKEY); if(!s) return false;
+    const d = JSON.parse(s);
+    if(d.specs) state.specs=d.specs;
+    if(d.consts) state.consts=Object.assign(deepCopy(DEFAULT_CONSTS), d.consts);
+    if(d.rows && d.rows.length){ state.rows=d.rows; state.rows.forEach(r=>{ if(!r.id) r.id=uid(); }); }
+    if(d.prices){ state.prices.cu=d.prices.cu; state.prices.al=d.prices.al; }
+    if(d.charge) state.charge=d.charge;
+    if(d.chartMetric) state.chartMetric=d.chartMetric;
+    if(d.seq) state.seq=d.seq;
+    return true;
+  }catch(e){ return false; }
+}
+
+/* =========================================================
+   11. 导航
+   ========================================================= */
+function initNav(){
+  const sidebar=$("sidebar"), backdrop=$("backdrop"), menuBtn=$("menuBtn");
+  const isMobile=()=>window.matchMedia("(max-width:900px)").matches;
+
+  $("collapseBtn").addEventListener("click",()=>{
+    if(isMobile()){ closeSide(); return; }
+    sidebar.classList.toggle("collapsed");
+    document.body.classList.toggle("collapsed");
+    $("collapseBtn").textContent = sidebar.classList.contains("collapsed") ? "»" : "«";
+    setTimeout(drawChart,240);
+  });
+  menuBtn.addEventListener("click",()=>{ sidebar.classList.add("open"); document.body.classList.add("side-open"); });
+  backdrop.addEventListener("click", closeSide);
+  function closeSide(){ sidebar.classList.remove("open"); document.body.classList.remove("side-open"); }
+
+  const items=[...document.querySelectorAll(".nav-item")];
+  items.forEach(a=>{
+    a.addEventListener("click",()=>{
+      const t=$(a.dataset.target); if(!t) return;
+      t.scrollIntoView({behavior:"smooth", block:"start"});
+      if(isMobile()) closeSide();
+    });
+  });
+  // 滚动高亮
+  function spy(){
+    const pos = window.scrollY + 120;
+    let cur = items[0];
+    items.forEach(a=>{ const t=$(a.dataset.target); if(t && t.offsetTop <= pos) cur=a; });
+    items.forEach(a=>a.classList.toggle("active", a===cur));
+  }
+  window.addEventListener("scroll", spy, {passive:true});
+  spy();
+}
+
+/* =========================================================
+   12. 初始化
+   ========================================================= */
+function recalcAll(){ renderTable(); refreshSummary(); computeCharge(); }
+
+function init(){
+  const loaded = load();
+  $("cuPrice").value = state.prices.cu;
+  $("alPrice").value = state.prices.al;
+  updateTon();
+  $("cuPrice").addEventListener("input",()=>{ state.prices.cu=parseFloat($("cuPrice").value)||0; updateTon(); recalcAll(); save(); });
+  $("alPrice").addEventListener("input",()=>{ state.prices.al=parseFloat($("alPrice").value)||0; updateTon(); recalcAll(); save(); });
+  $("fetchBtn").addEventListener("click",doFetch);
+  $("priceSrc").addEventListener("change",()=>{
+    const v=$("priceSrc").value;
+    if(v==="manual") setStatus("已选择“自定义价格”，请直接编辑铜价/铝价输入框。","warn");
+    else setStatus("已选择路径："+$("priceSrc").selectedOptions[0].textContent+"，点击“获取在线价格”拉取。","");
+  });
+
+  renderConsts(); renderSpecs();
+
+  $("vh").value = state.charge.vh; $("vk").value = state.charge.vk; $("actualCharge").value = state.charge.actual;
+  ["vh","vk","actualCharge"].forEach(id=>$(id).addEventListener("input",()=>{
+    state.charge = {vh:parseFloat($("vh").value)||0, vk:parseFloat($("vk").value)||0, actual:parseFloat($("actualCharge").value)||0};
+    computeCharge(); save();
+  }));
+  $("vhFromRow").addEventListener("change",()=>{
+    const row=state.rows.find(r=>r.id===$("vhFromRow").value); if(!row) return;
+    $("vh").value = Number(compute(row).Vol.toFixed(4));
+    state.charge.vh = parseFloat($("vh").value); computeCharge(); save();
+  });
+  $("vkFromRow").addEventListener("change",()=>{
+    const row=state.rows.find(r=>r.id===$("vkFromRow").value); if(!row) return;
+    $("vk").value = Number(compute(row).Vol.toFixed(4));
+    state.charge.vk = parseFloat($("vk").value); computeCharge(); save();
+  });
+
+  $("chartMetric").value = state.chartMetric;
+  $("chartMetric").addEventListener("change",()=>{ state.chartMetric=$("chartMetric").value; drawChart(); save(); });
+
+  $("addRow").addEventListener("click",()=>{
+    const last = state.rows[state.rows.length-1];
+    const base = last ? {...last} : {spec:"φ7",material:"cu",finPitch:1.4,finWidth:12.7,plateGap:600,uCount:18,drawU:0};
+    base.id=uid(); base.name="新方案"+(state.rows.length+1);
+    state.rows.push(base); save(); recalcAll();
+  });
+  $("resetRows").addEventListener("click",()=>{
+    state.rows = deepCopy(PRESET_ROWS); state.rows.forEach(r=>r.id=uid()); save(); recalcAll();
+  });
+  $("exportCsv").addEventListener("click",exportCsv);
+  $("deriveBtn").addEventListener("click",openDerive);
+  $("importBtn").addEventListener("click",openImport);
+  initModal();
+
+  initNav();
+  recalcAll();
+  window.addEventListener("resize",drawChart);
+  if(loaded) setStatus("已载入上次本地保存的数据（价格来源：自定义）。","");
+}
+document.addEventListener("DOMContentLoaded", init);
+</script>
+</body>
+</html>
